@@ -14,6 +14,9 @@ on:
   workflow_dispatch:
   push:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -26,18 +29,23 @@ jobs:
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
+            package_suffix: linux-gcc
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
+            package_suffix: linux-clang
           - os: ubuntu-22.04
             c_compiler: gcc
             cpp_compiler: g++
+            package_suffix: ubuntu-22.04-gcc
           - os: windows-2022
             c_compiler: cl
             cpp_compiler: cl
+            package_suffix: windows-msvc
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++
+            package_suffix: macos-clang
 
     steps:
     - name: Checkout
@@ -108,6 +116,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "package-dir=${{ github.workspace }}/dist" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
       run: >
@@ -263,23 +272,29 @@ jobs:
         # TODO: Create text-based rendering tests using fonts available on MacOS
         #
 
-    - name: Upload binaries (Linux and MacOS)
+    - name: Package binaries (Linux and MacOS)
       if: always() && !startsWith( matrix.os, 'windows-' )
-      uses: actions/upload-artifact@v4
-      with:
-        name: binaries-${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ github.run_number }}
-        path: |
-          ${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt
-          ${{ steps.strings.outputs.build-output-dir }}/glabels-batch/glabels-batch-qt
+      shell: bash
+      run: |
+        mkdir -p "${{ steps.strings.outputs.package-dir }}"
+        tar -C "${{ steps.strings.outputs.build-output-dir }}" -czf "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.tar.gz" \
+          glabels/glabels-qt \
+          glabels-batch/glabels-batch-qt
 
-    - name: Upload binaries (Windows)
+    - name: Package binaries (Windows)
       if: always() && startsWith( matrix.os, 'windows-' )
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path "${{ steps.strings.outputs.package-dir }}" | Out-Null
+        Compress-Archive -Path "${{ steps.strings.outputs.build-output-dir }}/glabels/Release/*", "${{ steps.strings.outputs.build-output-dir }}/glabels-batch/Release/*" -DestinationPath "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.zip" -Force
+
+    - name: Stage release package
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: binaries-${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ github.run_number }}
-        path: |
-          ${{ steps.strings.outputs.build-output-dir }}/glabels/Release/**
-          ${{ steps.strings.outputs.build-output-dir }}/glabels-batch/Release/**
+        name: release-package-${{ matrix.package_suffix }}
+        path: ${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.*
+        retention-days: 1
 
     - name: Upload render tests for manual inspection
       if: always()
@@ -292,4 +307,54 @@ jobs:
 #    - name: Tmate
 #      uses: mxschmitt/action-tmate@v3
 #      if: failure()
+
+  publish-development-release:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download staged packages
+      uses: actions/download-artifact@v4
+      with:
+        pattern: release-package-*
+        merge-multiple: true
+        path: dist
+
+    - name: Move development tag to current commit
+      shell: bash
+      run: |
+        git tag -f development "${GITHUB_SHA}"
+        git push origin refs/tags/development --force
+
+    - name: Create or update development prerelease
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if gh release view development >/dev/null 2>&1; then
+          gh release edit development --title development --notes "Latest successful development build binaries." --prerelease
+        else
+          gh release create development --title development --notes "Latest successful development build binaries." --prerelease
+        fi
+
+    - name: Remove previous development assets
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release view development --json assets --jq '.assets[].name' | while IFS= read -r asset_name; do
+          [[ -n "$asset_name" ]] || continue
+          gh release delete-asset development "$asset_name" --yes
+        done
+
+    - name: Upload latest development assets
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release upload development dist/* --clobber
 
