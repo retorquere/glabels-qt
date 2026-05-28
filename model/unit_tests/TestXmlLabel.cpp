@@ -60,6 +60,17 @@ using namespace glabels::barcode;
 using namespace glabels::merge;
 
 
+namespace
+{
+
+QString cleanTestPath( const QString& path )
+{
+        return QDir::cleanPath( path );
+}
+
+}
+
+
 void TestXmlLabel::initTestCase()
 {
         QCoreApplication::setOrganizationName( glabels::model::Version::ORGANIZATION_NAME );
@@ -322,9 +333,9 @@ void TestXmlLabel::writeReadFile()
         QCOMPARE( model->dir(), QFileInfo( glabels.fileName() ).dir() );
 
         // Copy before deletion else nulled
-        QString pngAbsoluteFileName = pngAbsolute.fileName();
-        QString pngRelativeFileName = model->dir().relativeFilePath( pngRelative.fileName() );
-        QString svgRelativeFileName = model->dir().relativeFilePath( svgRelative.fileName() );
+        QString pngAbsoluteFileName = cleanTestPath( pngAbsolute.fileName() );
+        QString pngRelativeFileName = cleanTestPath( model->dir().relativeFilePath( pngRelative.fileName() ) );
+        QString svgRelativeFileName = cleanTestPath( model->dir().relativeFilePath( svgRelative.fileName() ) );
 
         QFileInfo pngAbsoluteFileInfo( pngAbsoluteFileName );
         QVERIFY( pngAbsoluteFileInfo.isAbsolute() );
@@ -403,16 +414,16 @@ void TestXmlLabel::writeReadFile()
                 if ( i == 6 /*image6.jpg*/ )
                 {
                         // Not in data so absolute path set
-                        QCOMPARE( readObjects.at(i)->filenameNode().data(), modelDirPath + modelObjects.at(i)->filenameNode().data() );
+                        QCOMPARE( cleanTestPath( readObjects.at(i)->filenameNode().data() ), cleanTestPath( modelDirPath + modelObjects.at(i)->filenameNode().data() ) );
                 }
                 else if ( modelObjects.at(i)->filenameNode().data().startsWith( modelDirPath ) )
                 {
                         // Made relative to model dir
-                        QCOMPARE( modelDirPath + readObjects.at(i)->filenameNode().data(), modelObjects.at(i)->filenameNode().data() );
+                        QCOMPARE( cleanTestPath( modelDirPath + readObjects.at(i)->filenameNode().data() ), cleanTestPath( modelObjects.at(i)->filenameNode().data() ) );
                 }
                 else
                 {
-                        QCOMPARE( readObjects.at(i)->filenameNode().data(), modelObjects.at(i)->filenameNode().data() );
+                        QCOMPARE( cleanTestPath( readObjects.at(i)->filenameNode().data() ), cleanTestPath( modelObjects.at(i)->filenameNode().data() ) );
                 }
 
                 QCOMPARE( readObjects.at(i)->image(), modelObjects.at(i)->image() );
@@ -435,9 +446,9 @@ void TestXmlLabel::writeReadFile()
                 QCOMPARE( readObjects.at(i)->canLineWidth(), modelObjects.at(i)->canLineWidth() );
         }
 
-        QCOMPARE( readObjects[10]->filenameNode().data(), pngAbsoluteFileName );
-        QCOMPARE( readObjects[11]->filenameNode().data(), pngRelativeFileName );
-        QCOMPARE( readObjects[12]->filenameNode().data(), svgRelativeFileName );
+        QCOMPARE( cleanTestPath( readObjects[10]->filenameNode().data() ), pngAbsoluteFileName );
+        QCOMPARE( cleanTestPath( readObjects[11]->filenameNode().data() ), pngRelativeFileName );
+        QCOMPARE( cleanTestPath( readObjects[12]->filenameNode().data() ), svgRelativeFileName );
 
         QCOMPARE( readModel->variables().size(), model->variables().size() );
         for ( const auto& modelV : model->variables() )

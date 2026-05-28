@@ -141,6 +141,12 @@ namespace glabels::model
                         return dir;
                 }
 
+                dir = QDir();
+                if ( dir.cd( Config::PROJECT_SOURCE_DIR ) && dir.cd( "translations" ) )
+                {
+                        return dir;
+                }
+
                 qFatal( "Cannot locate system translations directory!" );
                 return QDir("/");
         }
