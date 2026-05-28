@@ -150,7 +150,7 @@ jobs:
       if: startsWith( matrix.os, 'macos-' )
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
-        ./glabels/glabels-qt --Version
+        ./glabels/glabels-qt.app/Contents/MacOS/glabels-qt --Version
         ctest --build-config Release
 
     - name: Install render test dependencies (Ubuntu-latest)
@@ -272,13 +272,23 @@ jobs:
         # TODO: Create text-based rendering tests using fonts available on MacOS
         #
 
-    - name: Package binaries (Linux and MacOS)
-      if: always() && !startsWith( matrix.os, 'windows-' )
+    - name: Package binaries (Linux)
+      if: always() && startsWith( matrix.os, 'ubuntu-' )
       shell: bash
       run: |
         mkdir -p "${{ steps.strings.outputs.package-dir }}"
         tar -C "${{ steps.strings.outputs.build-output-dir }}" -czf "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.tar.gz" \
           glabels/glabels-qt \
+          glabels-batch/glabels-batch-qt
+
+    - name: Deploy and package app bundle (MacOS)
+      if: always() && startsWith( matrix.os, 'macos-' )
+      shell: bash
+      run: |
+        mkdir -p "${{ steps.strings.outputs.package-dir }}"
+        macdeployqt "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app" -verbose=0
+        tar -C "${{ steps.strings.outputs.build-output-dir }}" -czf "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.tar.gz" \
+          glabels/glabels-qt.app \
           glabels-batch/glabels-batch-qt
 
     - name: Package binaries (Windows)

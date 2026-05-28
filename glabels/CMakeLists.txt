@@ -119,10 +119,14 @@ if (WIN32)
   set (glabels_win_rc glabels.rc)
 endif ()
 
+if (APPLE)
+  set (glabels_macos_target_type MACOSX_BUNDLE)
+endif ()
+
 #=====================================
 # Target
 #=====================================
-add_executable (glabels-qt WIN32
+add_executable (glabels-qt WIN32 ${glabels_macos_target_type}
   ${glabels_sources}
   ${glabels_moc_sources}
   ${glabels_qrc_sources}
@@ -144,10 +148,26 @@ target_link_libraries (glabels-qt
   Qt6::Widgets
 )
 
+if (APPLE)
+  set_target_properties (glabels-qt PROPERTIES
+    MACOSX_BUNDLE_BUNDLE_NAME "gLabels"
+    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_COPYRIGHT "glabels.org"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "org.glabels.glabels-qt"
+    MACOSX_BUNDLE_INFO_STRING "gLabels Label Designer"
+    MACOSX_BUNDLE_LONG_VERSION_STRING "${LONG_VERSION_STRING}"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${VERSION_STRING}"
+  )
+endif ()
+
 #=======================================
 # Install
 #=======================================
-install (TARGETS glabels-qt RUNTIME DESTINATION bin)
+if (APPLE)
+  install (TARGETS glabels-qt BUNDLE DESTINATION .)
+else ()
+  install (TARGETS glabels-qt RUNTIME DESTINATION bin)
+endif ()
 
 install (FILES icons/glabels-flat/scalable/apps/glabels.svg DESTINATION share/icons/hicolor/scalable/apps)
 install (FILES icons/glabels-flat/16x16/apps/glabels.svg    DESTINATION share/icons/hicolor/16x16/apps)
