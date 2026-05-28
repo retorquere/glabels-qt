@@ -287,9 +287,11 @@ jobs:
       run: |
         mkdir -p "${{ steps.strings.outputs.package-dir }}"
         macdeployqt "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app" -verbose=0
-        tar -C "${{ steps.strings.outputs.build-output-dir }}" -czf "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.tar.gz" \
-          glabels/glabels-qt.app \
-          glabels-batch/glabels-batch-qt
+        codesign --force --deep --sign - "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app"
+        codesign --verify --deep --strict --verbose=2 "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app"
+        ditto -c -k --keepParent \
+          "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app" \
+          "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.zip"
 
     - name: Package binaries (Windows)
       if: always() && startsWith( matrix.os, 'windows-' )
