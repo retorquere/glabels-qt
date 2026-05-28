@@ -33,6 +33,26 @@ namespace glabels::model
         namespace
         {
 
+                QDir findAncestorChildDir( const QString& subdir )
+                {
+                        QDir dir( QApplication::applicationDirPath() );
+
+                        while ( true )
+                        {
+                                if ( dir.exists( subdir ) && dir.cd( subdir ) )
+                                {
+                                        return dir;
+                                }
+
+                                if ( !dir.cdUp() )
+                                {
+                                        break;
+                                }
+                        }
+
+                        return QDir();
+                }
+
                 QDir bundleResourceDir( const QString& subdir )
                 {
                         QDir dir( QApplication::applicationDirPath() );
@@ -87,6 +107,12 @@ namespace glabels::model
                         return dir;
                 }
 
+                dir = findAncestorChildDir( "templates" );
+                if ( dir.exists() )
+                {
+                        return dir;
+                }
+
                 // Finally, try running out of the source directory.
                 dir = QDir();
                 if ( dir.cd( Config::PROJECT_SOURCE_DIR ) && dir.cd( "templates" ) )
@@ -129,6 +155,12 @@ namespace glabels::model
                 }
 
                 dir = installedShareDir( "translations" );
+                if ( dir.exists() )
+                {
+                        return dir;
+                }
+
+                dir = findAncestorChildDir( "translations" );
                 if ( dir.exists() )
                 {
                         return dir;
