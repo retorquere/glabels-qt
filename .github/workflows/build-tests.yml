@@ -263,6 +263,24 @@ jobs:
         # TODO: Create text-based rendering tests using fonts available on MacOS
         #
 
+    - name: Upload binaries (Linux and MacOS)
+      if: always() && !startsWith( matrix.os, 'windows-' )
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries-${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ github.run_number }}
+        path: |
+          ${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt
+          ${{ steps.strings.outputs.build-output-dir }}/glabels-batch/glabels-batch-qt
+
+    - name: Upload binaries (Windows)
+      if: always() && startsWith( matrix.os, 'windows-' )
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries-${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ github.run_number }}
+        path: |
+          ${{ steps.strings.outputs.build-output-dir }}/glabels/Release/**
+          ${{ steps.strings.outputs.build-output-dir }}/glabels-batch/Release/**
+
     - name: Upload render tests for manual inspection
       if: always()
       uses: actions/upload-artifact@v4
