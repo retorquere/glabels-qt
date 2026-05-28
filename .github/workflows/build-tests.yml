@@ -286,6 +286,11 @@ jobs:
       shell: bash
       run: |
         mkdir -p "${{ steps.strings.outputs.package-dir }}"
+        mkdir -p "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app/Contents/Resources/share/glabels-qt/translations"
+        mkdir -p "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app/Contents/Resources/share/glabels-qt/templates"
+        cp "${{ steps.strings.outputs.build-output-dir }}/translations/"*.qm "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app/Contents/Resources/share/glabels-qt/translations/"
+        cp "${{ github.workspace }}/templates/"*.xml "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app/Contents/Resources/share/glabels-qt/templates/"
+        cp "${{ github.workspace }}/templates/"*.dtd "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app/Contents/Resources/share/glabels-qt/templates/"
         macdeployqt "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app" -verbose=0
         codesign --force --deep --sign - "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app"
         codesign --verify --deep --strict --verbose=2 "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app"
