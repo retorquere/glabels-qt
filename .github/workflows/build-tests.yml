@@ -293,6 +293,17 @@ jobs:
           "${{ steps.strings.outputs.build-output-dir }}/glabels/glabels-qt.app" \
           "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.zip"
 
+    - name: Verify packaged app bundle (MacOS)
+      if: always() && startsWith( matrix.os, 'macos-' )
+      shell: bash
+      run: |
+        rm -rf "${{ runner.temp }}/glabels-qt.app"
+        ditto -x -k \
+          "${{ steps.strings.outputs.package-dir }}/glabels-qt-${{ matrix.package_suffix }}.zip" \
+          "${{ runner.temp }}"
+        codesign --verify --deep --strict --verbose=2 "${{ runner.temp }}/glabels-qt.app"
+        "${{ runner.temp }}/glabels-qt.app/Contents/MacOS/glabels-qt" --Version
+
     - name: Package binaries (Windows)
       if: always() && startsWith( matrix.os, 'windows-' )
       shell: pwsh
